@@ -1,6 +1,6 @@
 const express = require('express');
 const app = express.Router();
-let arrJsnUsuarios = [{ _id: 1, strNombre: "", strApellido: "", strEmail: "" }]
+const arrJsnUsuarios = [{ _id: 1, strNombre: "", strApellido: "", strEmail: "" }]
 // const path = require('path');
 // const rutaDescarga = path.resolve(__dirname, '../../assets/index.html');
 app.get('/', (req, res) => {
