@@ -25,6 +25,37 @@ app.get('/', (req, res) => {
 
     // return res.download(rutaDescarga, 'index.html');
 })
+app.get('/obtenerUsuario', (req, res) => {
+    const _idUsuario = Number(req.query._idUsuario);
+    if (!_idUsuario) {
+        return res.status(400).json({
+            ok: false,
+            msg: 'No se recibio un identificador de usuario',
+            cont: {
+                _idUsuario
+            }
+        })
+    }
+    const obtenerUsuario = arrJsnUsuarios.find(usuario => usuario._id == _idUsuario);
+    if (!obtenerUsuario) {
+        return res.status(400).json({
+            ok: false,
+            msg: `El usuario con el _id: ${_idUsuario} , no se encuentra registrado en la base de datos`,
+            cont: {
+                _idUsuario
+            }
+        })
+    }
+
+    return res.status(200).json({
+        ok: true,
+        msg: 'Se recibio el usuario de manera exitosa',
+        cont: {
+            obtenerUsuario
+        }
+    })
+})
+
 
 app.post('/', (req, res) => {
 
