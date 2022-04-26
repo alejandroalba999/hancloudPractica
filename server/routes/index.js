@@ -4,7 +4,7 @@ const app = express.Router();
 
 
 app.use('/producto', require('./producto/producto'))
-app.use('/usuario', require('./usuarios/usuario'));
+app.use('/usuario', require('./usuario/usuario'));
 
 
 module.exports = app;
