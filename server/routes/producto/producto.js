@@ -4,24 +4,36 @@ const ProductoModel = require('../../models/producto/producto.model');
 
 app.get('/', async (req, res) => {
     try {
-        const obtenerProductos = await ProductoModel.find();
+        const blnEstado = req.query.blnEstado == "false" ? false : true;
+        const obtenerProductos = await ProductoModel.find({ blnEstado: blnEstado });
+
+        //funcion con aggregate
+
+        const obtenerProductosConAggregate = await ProductoModel.aggregate([
+            { $match: { blnEstado: blnEstado } },
+        ]);
+
+        //funcion con aggregate
+
         if (obtenerProductos.length == 0) {
             return res.status(400).json({
                 ok: false,
                 msg: 'No se encontrarón productos en la base de datos',
                 cont: {
-                    obtenerProductos
+                    obtenerProductos,
                 }
             })
         }
         return res.status(200).json({
             ok: true,
             msg: 'Se obtuvierón los productos de manera exitosa',
+            count: obtenerProductos.length,
             cont: {
-                obtenerProductos
+                obtenerProductosConAggregate
             }
         })
     } catch (error) {
+        console.log(error);
         return res.status(500).json({
             ok: false,
             msg: 'Error en el servidor',
@@ -87,13 +99,23 @@ app.put('/', async (req, res) => {
                 }
             })
         }
-        const encontroProducto = await ProductoModel.findOne({ _id: _idProducto });
+        const encontroProducto = await ProductoModel.findOne({ _id: _idProducto, blnEstado: true });
         if (!encontroProducto) {
             return res.status(400).json({
                 ok: false,
                 msg: 'El producto no se encuentra registrado',
                 cont: {
                     _idProducto
+                }
+            })
+        }
+        const encontroNombreProducto = await ProductoModel.findOne({ strNombre: req.body.strNombre, _id: { $ne: _idProducto } }, { strNombre: 1 })
+        if (encontroNombreProducto) {
+            return res.status(400).json({
+                ok: false,
+                msg: 'El nombre del producto ya se encuentra registrado',
+                cont: {
+                    encontroNombreProducto
                 }
             })
         }
@@ -130,6 +152,7 @@ app.put('/', async (req, res) => {
 app.delete('/', async (req, res) => {
     try {
         const _idProducto = req.query._idProducto;
+        const blnEstado = req.query.blnEstado == "false" ? false : true
         if (!_idProducto || _idProducto.length != 24) {
             return res.status(400).json({
                 ok: false,
@@ -152,19 +175,19 @@ app.delete('/', async (req, res) => {
         // Esta funcion elimina de manera definitiva el producto
         // const eliminarProducto = await ProductoModel.findOneAndDelete({ _id: _idProducto });
         //Esta funcion solo cambia el estado del producto
-        const desactivarProducto = await ProductoModel.findOneAndUpdate({ _id: _idProducto }, { $set: { blnEstado: false } }, { new: true })
-        if (!desactivarProducto) {
-            return res.status(400).json({
-                ok: false,
-                msg: 'El producto no se logro desactivar de la base de datos',
-                cont: {
-                    desactivarProducto
-                }
-            })
-        }
+        const desactivarProducto = await ProductoModel.findOneAndUpdate({ _id: _idProducto }, { $set: { blnEstado: blnEstado } }, { new: true })
+        // if (!desactivarProducto) {
+        //     return res.status(400).json({
+        //         ok: false,
+        //         msg: blnEstado == true ? 'El producto no se logro activar' : 'El producto no se logro desactivar', 
+        //         cont: {
+        //             desactivarProducto
+        //         }
+        //     })
+        // }
         return res.status(200).json({
             ok: true,
-            msg: 'El producto se desactivo exitosamente',
+            msg: blnEstado == true ? 'Se activo el producto de manera exitosa' : 'Se desactivo el producto de manera exitosa',
             cont: {
                 desactivarProducto
             }
@@ -179,6 +202,10 @@ app.delete('/', async (req, res) => {
         })
     }
 })
+//La agregación en MongoDB sigue una estructura tipo "pipeline":
+// diferentes etapas, donde cada una toma la salida de la anterior.
+// Los elementos de la "tubería" se incluyen en un array y se ejecutarán por orden.
+// Cada elemento puede repetirse y el orden puede variar.
 
 
 module.exports = app;
