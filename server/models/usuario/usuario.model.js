@@ -28,6 +28,10 @@ let SchemaUsuario = mongoose.Schema({
     strNombreUsuario: {
         type: String,
         required: [true, 'No se recibio el strNombreUsuario, favor de ingresarlo']
+    },
+    idEmpresa: {
+        type: mongoose.Types.ObjectId,
+        required: [true, 'No se recibio el idEmpresa, favor de ingresarlo']
     }
 })
 

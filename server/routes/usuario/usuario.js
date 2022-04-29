@@ -2,10 +2,36 @@ const express = require('express');
 const app = express.Router();
 const UsuarioModel = require('../../models/usuario/usuario.model');
 const bcrypt = require('bcrypt');
-// const path = require('path');
-// const rutaDescarga = path.resolve(__dirname, '../../assets/index.html');
-app.get('/', async (req, res) => {
-    const obtenerUsuarios = await UsuarioModel.find({}, {});
+const { verificarAcceso } = require('../../middlewares/permisos');
+
+app.get('/', verificarAcceso, async (req, res) => {
+    const blnEstado = req.query.blnEstado == "false" ? false : true;
+    const obtenerUsuarios = await UsuarioModel.aggregate(
+        [
+            {
+                $match: { blnEstado: blnEstado }
+            },
+            {
+                $lookup: {
+                    from: "empresas",
+                    localField: "idEmpresa",
+                    foreignField: "_id",
+                    as: "empresa"
+                }
+            },
+            {
+                $project: {
+                    strNombre: 1,
+                    strApellido: 1,
+                    strEmail: 1,
+                    strDireccion: '$strDireccion',
+                    empresa: {
+                        $arrayElemAt: ['$empresa', 0]
+                    }
+                }
+            }
+        ]
+    );
     if (obtenerUsuarios.length < 1) {
         return res.status(400).json({
             ok: false,
@@ -18,6 +44,7 @@ app.get('/', async (req, res) => {
     return res.status(200).json({
         ok: true,
         msg: 'Se obtuvierón los usuarios de manera correcta',
+        count: obtenerUsuarios.length,
         cont: {
             obtenerUsuarios
         }
@@ -86,7 +113,7 @@ app.put('/', async (req, res) => {
                 })
         }
 
-        const encontroUsuario = await UsuarioModel.findOne({ _id: _idUsuario });
+        const encontroUsuario = await UsuarioModel.findOne({ _id: _idUsuario, blnEstado: true });
 
         if (!encontroUsuario) {
             return res.status(400).json(
@@ -121,7 +148,8 @@ app.put('/', async (req, res) => {
             $set: {
                 strNombre: req.body.strNombre, strApellido: req.body.strApellido,
                 strDireccion: req.body.strDireccion,
-                strNombreUsuario: req.body.strNombreUsuario
+                strNombreUsuario: req.body.strNombreUsuario,
+                idEmpresa: req.body.idEmpresa
             }
         }, { new: true, upsert: true });
 
