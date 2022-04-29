@@ -32,6 +32,7 @@ app.post('/login', async (req, res) => {
                 }
             })
         }
+
         const compararContrasena = bcrypt.compareSync(strContrasena, encontroEmail.strContrasena);
         if (!compararContrasena) {
             return res.status(400).json({
