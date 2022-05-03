@@ -33,14 +33,16 @@ app.get('/', async (req, res) => {
             }
         })
     } catch (error) {
-        console.log(error);
-        return res.status(500).json({
-            ok: false,
-            msg: 'Error en el servidor',
-            cont: {
-                error
-            }
-        })
+        const err = Error(error);
+        return res.status(500).json(
+            {
+                ok: false,
+                msg: 'Error en el servidor',
+                cont:
+                {
+                    err: err.message ? err.message : err.name ? err.name : err
+                }
+            })
     }
 })
 app.post('/', async (req, res) => {
@@ -76,13 +78,16 @@ app.post('/', async (req, res) => {
             }
         })
     } catch (error) {
-        return res.status(500).json({
-            ok: false,
-            msg: 'Error en el servidor',
-            cont: {
-                error
-            }
-        })
+        const err = Error(error);
+        return res.status(500).json(
+            {
+                ok: false,
+                msg: 'Error en el servidor',
+                cont:
+                {
+                    err: err.message ? err.message : err.name ? err.name : err
+                }
+            })
     }
 
 
@@ -139,13 +144,16 @@ app.put('/', async (req, res) => {
             }
         })
     } catch (error) {
-        return res.status(500).json({
-            ok: false,
-            msg: 'Error en el servidor',
-            cont: {
-                error
-            }
-        })
+        const err = Error(error);
+        return res.status(500).json(
+            {
+                ok: false,
+                msg: 'Error en el servidor',
+                cont:
+                {
+                    err: err.message ? err.message : err.name ? err.name : err
+                }
+            })
     }
 
 })
@@ -193,13 +201,16 @@ app.delete('/', async (req, res) => {
             }
         })
     } catch (error) {
-        return res.status(500).json({
-            ok: false,
-            msg: 'Error en el servidor',
-            cont: {
-                error
-            }
-        })
+        const err = Error(error);
+        return res.status(500).json(
+            {
+                ok: false,
+                msg: 'Error en el servidor',
+                cont:
+                {
+                    err: err.message ? err.message : err.name ? err.name : err
+                }
+            })
     }
 })
 //La agregación en MongoDB sigue una estructura tipo "pipeline":

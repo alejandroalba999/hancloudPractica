@@ -18,7 +18,7 @@ const verificarAcceso = async (req, res, next) => {
             if (err) {
                 return console.log(err.name)
             }
-            console.log(decoded);
+            console.log(req.originalUrl);
             next();
         })
 

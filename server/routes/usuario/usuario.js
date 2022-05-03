@@ -3,98 +3,134 @@ const app = express.Router();
 const UsuarioModel = require('../../models/usuario/usuario.model');
 const bcrypt = require('bcrypt');
 const { verificarAcceso } = require('../../middlewares/permisos');
+const cargaArchivo = require('../../library/cargarArchivos');
 
 app.get('/', verificarAcceso, async (req, res) => {
-    const blnEstado = req.query.blnEstado == "false" ? false : true;
-    const obtenerUsuarios = await UsuarioModel.aggregate(
-        [
-            {
-                $match: { blnEstado: blnEstado }
-            },
-            {
-                $lookup: {
-                    from: "empresas",
-                    localField: "idEmpresa",
-                    foreignField: "_id",
-                    as: "empresa"
-                }
-            },
-            {
-                $project: {
-                    strNombre: 1,
-                    strApellido: 1,
-                    strEmail: 1,
-                    strDireccion: '$strDireccion',
-                    empresa: {
-                        $arrayElemAt: ['$empresa', 0]
+    try {
+        const blnEstado = req.query.blnEstado == "false" ? false : true;
+        const obtenerUsuarios = await UsuarioModel.aggregate(
+            [
+                {
+                    $match: { blnEstado: blnEstado }
+                },
+                {
+                    $lookup: {
+                        from: "empresas",
+                        localField: "idEmpresa",
+                        foreignField: "_id",
+                        as: "empresa"
+                    }
+                },
+                {
+                    $project: {
+                        strNombre: 1,
+                        strApellido: 1,
+                        strEmail: 1,
+                        strDireccion: '$strDireccion',
+                        empresa: {
+                            $arrayElemAt: ['$empresa', 0]
+                        }
                     }
                 }
-            }
-        ]
-    );
-    if (obtenerUsuarios.length < 1) {
-        return res.status(400).json({
-            ok: false,
-            msg: 'No se encontrarón productos en la base de datos',
+            ]
+        );
+        if (obtenerUsuarios.length < 1) {
+            return res.status(400).json({
+                ok: false,
+                msg: 'No se encontrarón productos en la base de datos',
+                cont: {
+                    obtenerUsuarios
+                }
+            })
+        }
+        return res.status(200).json({
+            ok: true,
+            msg: 'Se obtuvierón los usuarios de manera correcta',
+            count: obtenerUsuarios.length,
             cont: {
                 obtenerUsuarios
             }
         })
+    } catch (error) {
+        const err = Error(error);
+        return res.status(500).json(
+            {
+                ok: false,
+                msg: 'Error en el servidor',
+                cont:
+                {
+                    err: err.message ? err.message : err.name ? err.name : err
+                }
+            })
     }
-    return res.status(200).json({
-        ok: true,
-        msg: 'Se obtuvierón los usuarios de manera correcta',
-        count: obtenerUsuarios.length,
-        cont: {
-            obtenerUsuarios
-        }
-    })
 })
 app.post('/', async (req, res) => {
     // existe ? (lo que pasa si existe) : (no existe);
-    const body = { ...req.body, strContrasena: req.body.strContrasena ? bcrypt.hashSync(req.body.strContrasena, 10) : undefined };
-    const bodyUsuario = new UsuarioModel(body);
-    const encontrarEmailUsuario = await UsuarioModel.findOne({ strEmail: body.strEmail });
-    const encontrarNombreUsuario = await UsuarioModel.findOne({ strNombreUsuario: body.strNombreUsuario })
-    if (encontrarEmailUsuario) {
-        return res.status(400).json({
-            ok: false,
-            msg: 'El correo ya se encuentra registrado',
-            cont: {
-                body
-            }
-        })
-    }
-    if (encontrarNombreUsuario) {
-        return res.status(400).json({
-            ok: false,
-            msg: 'El nombre de usuario ya se encuentra registrado',
-            cont: {
-                body
-            }
-        })
-    }
-    const err = bodyUsuario.validateSync();
-    if (err) {
-        return res.status(400).json({
-            ok: false,
-            msg: 'Uno o mas campos no se registrarón favor de ingresarlos',
-            cont: {
-                err
-            }
-        })
-    }
-    const usuarioRegistrado = await bodyUsuario.save();
-    return res.status(200).json({
-        ok: true,
-        msg: 'Se registro el usuario de manera exitosa',
-        cont: {
-            usuarioRegistrado
+    try {
+        const body = { ...req.body, strContrasena: req.body.strContrasena ? bcrypt.hashSync(req.body.strContrasena, 10) : undefined };
+        const bodyUsuario = new UsuarioModel(body);
+        const encontrarEmailUsuario = await UsuarioModel.findOne({ strEmail: body.strEmail });
+        const encontrarNombreUsuario = await UsuarioModel.findOne({ strNombreUsuario: body.strNombreUsuario })
+        if (encontrarEmailUsuario) {
+            return res.status(400).json({
+                ok: false,
+                msg: 'El correo ya se encuentra registrado',
+                cont: {
+                    body
+                }
+            })
         }
-    })
+        if (encontrarNombreUsuario) {
+            return res.status(400).json({
+                ok: false,
+                msg: 'El nombre de usuario ya se encuentra registrado',
+                cont: {
+                    body
+                }
+            })
+        }
+        const err = bodyUsuario.validateSync();
+        if (err) {
+            return res.status(400).json({
+                ok: false,
+                msg: 'Uno o mas campos no se registrarón favor de ingresarlos',
+                cont: {
+                    err
+                }
+            })
+        }
+        if (req.files) {
+            if (!req.files.strImagen) {
+                return res.status(400).json({
+                    ok: false,
+                    msg: 'No se recibio un archivo strImagen, favor de inregsarlo',
+                    cont: {}
+                })
+            }
+            bodyUsuario.strImagen = await cargaArchivo.subirArchivo(req.files.strImagen, 'usuario', ['image/png', 'image/jpg', 'image/jpeg'])
+
+        }
+        const usuarioRegistrado = await bodyUsuario.save();
+        return res.status(200).json({
+            ok: true,
+            msg: 'Se registro el usuario de manera exitosa',
+            cont: {
+                usuarioRegistrado
+            }
+        })
+    } catch (error) {
+        const err = Error(error);
+        return res.status(500).json(
+            {
+                ok: false,
+                msg: 'Error en el servidor',
+                cont:
+                {
+                    err: err.message ? err.message : err.name ? err.name : err
+                }
+            })
+    }
 })
-
-
 app.put('/', async (req, res) => {
 
     try {
@@ -181,18 +217,18 @@ app.put('/', async (req, res) => {
 
     }
     catch (error) {
+        const err = Error(error);
         return res.status(500).json(
             {
                 ok: false,
                 msg: 'Error en el servidor',
                 cont:
                 {
-                    error
+                    err: err.message ? err.message : err.name ? err.name : err
                 }
             })
     }
 })
-
 app.delete('/', async (req, res) => {
     try {
         const _idUsuario = req.query._idUsuario
@@ -216,13 +252,14 @@ app.delete('/', async (req, res) => {
             }
         })
     } catch (error) {
+        const err = Error(error);
         return res.status(500).json(
             {
                 ok: false,
                 msg: 'Error en el servidor',
                 cont:
                 {
-                    error
+                    err: err.message ? err.message : err.name ? err.name : err
                 }
             })
     }
