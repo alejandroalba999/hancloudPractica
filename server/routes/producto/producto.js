@@ -1,8 +1,9 @@
 const express = require('express');
+const { verificarAcceso } = require('../../middlewares/permisos');
 const app = express.Router();
 const ProductoModel = require('../../models/producto/producto.model');
 
-app.get('/', async (req, res) => {
+app.get('/', verificarAcceso, async (req, res) => {
     try {
         const blnEstado = req.query.blnEstado == "false" ? false : true;
         const obtenerProductos = await ProductoModel.find({ blnEstado: blnEstado });
