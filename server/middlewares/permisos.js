@@ -10,7 +10,7 @@ const verificarAcceso = async (req, res, next) => {
         if (!token) {
             return res.status(400).json({
                 ok: false,
-                msg: 'No se recibio un token valido',
+                msg: 'No se recibio un token',
                 cont: {
                     token
                 }
@@ -18,7 +18,23 @@ const verificarAcceso = async (req, res, next) => {
         }
         jwt.verify(token, process.env.SEED, async (err, decoded) => {
             if (err) {
-                return console.log(err.name)
+                if (err.name == 'JsonWebTokenError') {
+                    return res.status(400).json({
+                        ok: false,
+                        msg: 'No se recibio un token valido',
+                        cont: {
+                            err: err.name
+                        }
+                    })
+                } else {
+                    return res.status(400).json({
+                        ok: false,
+                        msg: 'El token exipro, favor de actualizar token',
+                        cont: {
+                            err: err.name
+                        }
+                    })
+                }
             }
             const obtenerUsuarios = await UsuarioModel.aggregate(
                 [
