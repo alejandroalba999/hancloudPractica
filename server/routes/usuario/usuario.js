@@ -3,8 +3,10 @@ const app = express.Router();
 const UsuarioModel = require('../../models/usuario/usuario.model');
 const bcrypt = require('bcrypt');
 const { verificarAcceso } = require('../../middlewares/permisos');
-const cargaArchivo = require('../../library/cargarArchivos');
-
+const { subirArchivo } = require('../../library/cargarArchivos');
+const RolModel = require('../../models/permisos/rol.model');
+const EmpresaModel = require('../../models/empresa/empresa.model')
+const ApiModel = require('../../models/permisos/api.model');
 app.get('/', verificarAcceso, async (req, res) => {
     try {
         const blnEstado = req.query.blnEstado == "false" ? false : true;
@@ -15,10 +17,40 @@ app.get('/', verificarAcceso, async (req, res) => {
                 },
                 {
                     $lookup: {
-                        from: "empresas",
+                        from: EmpresaModel.collection.name,
                         localField: "idEmpresa",
                         foreignField: "_id",
                         as: "empresa"
+                    }
+                },
+                {
+                    $lookup: {
+                        from: RolModel.collection.name,
+                        let: { idObjRol: '$_idObjRol' },
+                        pipeline: [
+                            // { $match: { blnEstado: true } }
+                            { $match: { $expr: { $eq: ['$$idObjRol', '$_id'] } } },
+                            {
+                                $lookup: {
+                                    from: ApiModel.collection.name,
+                                    let: { arrApis: '$arrObjIdApis' },
+                                    pipeline: [
+                                        { $match: { $expr: { $in: ['$_id', '$$arrApis'] } } },
+                                    ],
+                                    as: 'apis'
+                                }
+                            },
+                            {
+                                $project: {
+                                    strNombre: 1,
+                                    strDescripcion: 1,
+                                    blnRolDefault: 1,
+                                    blnEstado: 1,
+                                    apis: 1
+                                }
+                            }
+                        ],
+                        as: 'rol'
                     }
                 },
                 {
@@ -26,10 +58,14 @@ app.get('/', verificarAcceso, async (req, res) => {
                         strNombre: 1,
                         strApellido: 1,
                         strEmail: 1,
+                        strNombreUsuario: 1,
                         strDireccion: '$strDireccion',
                         empresa: {
                             $arrayElemAt: ['$empresa', 0]
-                        }
+                        },
+                        rol: {
+                            $arrayElemAt: ['$rol', 0]
+                        },
                     }
                 }
             ]
@@ -107,8 +143,11 @@ app.post('/', async (req, res) => {
                     cont: {}
                 })
             }
-            bodyUsuario.strImagen = await cargaArchivo.subirArchivo(req.files.strImagen, 'usuario', ['image/png', 'image/jpg', 'image/jpeg'])
-
+            bodyUsuario.strImagen = await subirArchivo(req.files.strImagen, 'usuario', ['image/png', 'image/jpg', 'image/jpeg'])
+        }
+        if (!req.body._idObjRol) {
+            const encontroRolDefault = await RolModel.findOne({ blnRolDefault: true })
+            bodyUsuario._idObjRol = encontroRolDefault._id;
         }
         const usuarioRegistrado = await bodyUsuario.save();
         return res.status(200).json({

@@ -13,8 +13,6 @@ app.get('/:ruta/:nameImg', (req, res) => {
     } else {
         return res.sendFile(noImage)
     }
-
-
 })
 
 module.exports = app;

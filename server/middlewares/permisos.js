@@ -1,6 +1,8 @@
 const jwt = require('jsonwebtoken');
 require('../config/config');
-
+const UsuarioModel = require('../models/usuario/usuario.model');
+const RolModel = require('../models/permisos/rol.model')
+const ApiModel = require('../models/permisos/api.model')
 
 const verificarAcceso = async (req, res, next) => {
     try {
@@ -14,11 +16,60 @@ const verificarAcceso = async (req, res, next) => {
                 }
             })
         }
-        jwt.verify(token, process.env.SEED, (err, decoded) => {
+        jwt.verify(token, process.env.SEED, async (err, decoded) => {
             if (err) {
                 return console.log(err.name)
             }
-            console.log(req.originalUrl);
+            const obtenerUsuarios = await UsuarioModel.aggregate(
+                [
+                    {
+                        $lookup: {
+                            from: RolModel.collection.name,
+                            let: { idObjRol: '$_idObjRol' },
+                            pipeline: [
+                                // { $match: { blnEstado: true } }
+                                { $match: { $expr: { $eq: ['$$idObjRol', '$_id'] } } },
+                                {
+                                    $lookup: {
+                                        from: ApiModel.collection.name,
+                                        let: { arrApis: '$arrObjIdApis' },
+                                        pipeline: [
+                                            { $match: { $expr: { $in: ['$_id', '$$arrApis'] } } },
+                                        ],
+                                        as: 'apis'
+                                    }
+                                },
+                                {
+                                    $project: {
+                                        strNombre: 1,
+                                        strDescripcion: 1,
+                                        blnRolDefault: 1,
+                                        blnEstado: 1,
+                                        apis: 1
+                                    }
+                                }
+                            ],
+                            as: 'rol'
+                        }
+                    },
+                    {
+                        $project: {
+                            strNombre: 1,
+                            strApellido: 1,
+                            strEmail: 1,
+                            strNombreUsuario: 1,
+                            strDireccion: '$strDireccion',
+                            empresa: {
+                                $arrayElemAt: ['$empresa', 0]
+                            },
+                            rol: {
+                                $arrayElemAt: ['$rol', 0]
+                            },
+                        }
+                    }
+                ]
+            );
+            console.log(obtenerUsuarios);
             next();
         })
 

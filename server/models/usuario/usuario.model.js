@@ -36,6 +36,9 @@ let SchemaUsuario = mongoose.Schema({
     strImagen: {
         type: String,
         default: 'default.jpg'
+    },
+    _idObjRol: {
+        type: mongoose.Types.ObjectId
     }
 })
 
