@@ -147,6 +147,13 @@ app.post('/', async (req, res) => {
         }
         if (!req.body._idObjRol) {
             const encontroRolDefault = await RolModel.findOne({ blnRolDefault: true })
+            if (!encontroRolDefault) {
+                return res.status(400).json({
+                    ok: false,
+                    msg: 'No se registro un rol por default favor de registrarlo',
+                    cont: {}
+                })
+            }
             bodyUsuario._idObjRol = encontroRolDefault._id;
         }
         const usuarioRegistrado = await bodyUsuario.save();
