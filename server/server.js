@@ -1,8 +1,8 @@
 require('./config/config');
 require('colors');
-const express = require('express');
+const express = require('express');//
 const mongoose = require('mongoose');
-const app = express();
+const app = require('./app');
 const cors = require('cors');
 const fileUpload = require('express-fileupload');
 

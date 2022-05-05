@@ -6,7 +6,7 @@ let urlDB;
 if (process.env.NODE_ENV === 'dev') {
     urlDB = "mongodb+srv://admin:admin@cluster0.dyboa.mongodb.net/backendMongoAtlas?retryWrites=true&w=majority"
 } else {
-    urlDB = "mongodb://localhost:27017/InventarioHancloud"
+    urlDB = "mongodb+srv://admin:admin@cluster0.dyboa.mongodb.net/backendMongoAtlas?retryWrites=true&w=majority"
 }
 
 process.env.URLDB = urlDB;
